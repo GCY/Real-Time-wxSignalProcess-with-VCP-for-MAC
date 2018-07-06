@@ -12,7 +12,7 @@ C++11
 </br></br>
 build wxSignalProcess:
 </br>
-g++ -o2 -o main.app main.cpp mathplot.cpp connectargsdlg.cpp serialport.cpp `wx-config --cxxflags --libs` --std=c++11
+g++ -o2 -o main.app main.cpp mathplot.cpp connectargsdlg.cpp serialport.cpp \`wx-config --cxxflags --libs\` --std=c++11
 </br></br>
 build STM32F407 with ADC+VCP:
 </br>
