@@ -16,7 +16,7 @@ g++ -o2 -o main.app main.cpp mathplot.cpp connectargsdlg.cpp serialport.cpp \`wx
 </br></br>
 build STM32F407 with ADC+VCP:
 </br>
-make
+makefile
 </br></br>
 demo video:
 </br>
