@@ -6,7 +6,7 @@ wxWidgets 3.0 : https://github.com/wxWidgets
 </br>
 wxMathPlot 0.1.2 (MRPT version) : https://github.com/MRPT/mrpt
 </br>
-POSIX
+POSIX API
 </br>
 C++11
 </br></br>
