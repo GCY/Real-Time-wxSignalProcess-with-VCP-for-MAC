@@ -38,6 +38,12 @@ void SysTick_Handler(void)
    ++micros;
 }
 
+/*
+ * APB2 = 84MHz, Div4, ADC CLOCK = 21MHz, 12cycles ( 12-bits resolution )
+ * (3clock + 12clock)/21M = 0.7us
+ * ADC_TwoSamplingDelay = 5clock/21MHz = 0.24us
+ * 0.7+0.24 = 0.94us = 1MHz sampling rate
+ */
 volatile uint32_t adc_value[4] = {0};
 void Init_ADC(void)
 {
