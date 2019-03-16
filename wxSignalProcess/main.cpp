@@ -12,6 +12,7 @@
 #include <cstdlib>
 #include <ctime> 
 #include <iostream>
+#include <chrono> 
 
 enum{
    ID_EXIT = 200,
@@ -78,7 +79,7 @@ class Frame:public wxFrame
       mpFXYVector* processing_layer;
       std::vector<double> processing_layer_x, processing_layer_y;      
 
-      clock_t record_start_time;
+      std::chrono::steady_clock::time_point record_start_time;
       bool record_flag;
       std::fstream record;
 
@@ -287,7 +288,7 @@ void Frame::OnRecord(wxCommandEvent &event)
       wxFileName namePath(fileDialog.GetPath());
       record.open(fileDialog.GetPath().mb_str(),std::fstream::out);
       record_flag = true;
-      record_start_time = clock();
+      record_start_time = std::chrono::steady_clock::now();
       /*
       int fileType = wxBITMAP_TYPE_BMP;
       if( namePath.GetExt().CmpNoCase(wxT("jpeg")) == 0 ) fileType = wxBITMAP_TYPE_JPEG;
@@ -353,8 +354,9 @@ void Frame::OnExit(wxCommandEvent &event)
    Close();
 }
 
-clock_t start_time = std::clock();
-int ttt = 0;
+unsigned int sampling_rate = 0;
+std::chrono::steady_clock::time_point sampling_time = std::chrono::steady_clock::now();
+int index_point = 0;
 void Frame::OnThreadEvent(wxThreadEvent &event)
 {
    const size_t MAX_POINT = 10000;
@@ -363,6 +365,12 @@ void Frame::OnThreadEvent(wxThreadEvent &event)
 
       unsigned char buffer[3000]={0};
       int length = serial.Read(buffer);
+
+      if((std::chrono::steady_clock::duration(std::chrono::steady_clock::now() - sampling_time).count() > std::chrono::steady_clock::period::den) && run_flag){    
+	 wxLogDebug(wxT("Sampling Rate: %d"),sampling_rate);
+	 sampling_rate = 0;
+	 sampling_time = std::chrono::steady_clock::now();
+      }
 
       if(length != -1){
 	 //std::cout << buffer << std::endl;
@@ -375,21 +383,26 @@ void Frame::OnThreadEvent(wxThreadEvent &event)
 
 	 while(tokenizer1.HasMoreTokens()){
 	    wxString split = tokenizer1.GetNextToken();
+	    ++sampling_rate;
 	    
 	    if(record_flag){
 	       record << split << std::endl;
-	       if(clock() - record_start_time > 60*CLOCKS_PER_SEC){
+	       if(std::chrono::steady_clock::duration(std::chrono::steady_clock::now() - record_start_time).count() > 60 * std::chrono::steady_clock::period::den){
 		  record_flag = false;
 		  record.close();
 		  wxMessageBox(wxT("Record 1 minumte data!"),wxT("DONE!"));
 	       }
 	    }
+
 	    wxStringTokenizer tokenizer2(split,",");
+	    if(tokenizer2.CountTokens() < 6){
+	       return ;
+	    }
 	    int token_index = 0;
 	    while(tokenizer2.HasMoreTokens()){
 	       wxString str = tokenizer2.GetNextToken();       
 	       if(token_index == 1){
-		  original_layer_x.push_back( ttt );
+		  original_layer_x.push_back( index_point );
 		  original_layer_y.push_back(wxAtoi(str));
 		  if (original_layer_x.size() > MAX_POINT && original_layer_y.size() > MAX_POINT){
 		     original_layer_x.erase(original_layer_x.begin());
@@ -397,13 +410,13 @@ void Frame::OnThreadEvent(wxThreadEvent &event)
 		  } 
 	       }
 	       if(token_index == 2){
-		  processing_layer_x.push_back( ttt );
+		  processing_layer_x.push_back( index_point );
 		  processing_layer_y.push_back(wxAtoi(str));
 		  if (processing_layer_x.size() > MAX_POINT && processing_layer_y.size() > MAX_POINT){
 		     processing_layer_x.erase(processing_layer_x.begin());
 		     processing_layer_y.erase(processing_layer_y.begin());
 		  } 
-		  ++ttt;
+		  ++index_point;
 	       }		       
 	       ++token_index;
 	    }
@@ -426,25 +439,25 @@ Thread::Thread(Frame *parent,wxEvtHandler *evt):wxThread(wxTHREAD_DETACHED),hand
    frame = parent;
 }
 
-clock_t refresh_last = std::clock();
-clock_t read_last = std::clock();
+std::chrono::steady_clock::time_point refresh_last = std::chrono::steady_clock::now();
+std::chrono::steady_clock::time_point read_last = std::chrono::steady_clock::now();
 void* Thread::Entry()
 {
-   const clock_t READ_RATE = 1000;
-   const clock_t FRAME_RATE = 30;
+   const int32_t READ_RATE = 1000;
+   const int32_t FRAME_RATE = 30;
 
    while(!TestDestroy()){
-      if(clock() - read_last > (CLOCKS_PER_SEC/READ_RATE)){
+      if(std::chrono::steady_clock::duration(std::chrono::steady_clock::now() - read_last).count() > (std::chrono::steady_clock::period::den/READ_RATE)){
 	 wxThreadEvent *evt = new wxThreadEvent(wxEVT_THREAD);
 	 evt->SetInt(EVT_SERIAL_PORT_READ);
 	 handler->QueueEvent(evt);
-	 read_last = clock();
+	 read_last = std::chrono::steady_clock::now();
       }
-      if(std::clock() - refresh_last > (CLOCKS_PER_SEC/FRAME_RATE)){
+      if(std::chrono::steady_clock::duration(std::chrono::steady_clock::now() - refresh_last).count() > (std::chrono::steady_clock::period::den/FRAME_RATE)){
 	 wxThreadEvent *evt = new wxThreadEvent(wxEVT_THREAD);
 	 evt->SetInt(EVT_REFRESH_PLOT);
 	 handler->QueueEvent(evt);
-	 refresh_last = std::clock();
+	 refresh_last = std::chrono::steady_clock::now();
       }
    }
 
