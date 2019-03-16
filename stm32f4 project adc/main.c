@@ -226,7 +226,7 @@ int main(void)
 
   unsigned char str[255];
 
-  sprintf(str,"R%d,%d,%d,%d,%d\r\n",micros,adc_value[0],adc_value[1],adc_value[2],adc_value[3]);  
+  sprintf(str,"R%d,%d,%d,%d,%d,\r\n",micros,adc_value[0],adc_value[1],adc_value[2],adc_value[3]);  
 
      if(USB_VCP_GetStatus() == USB_VCP_CONNECTED) {
 	if(sn == 1){
@@ -270,7 +270,7 @@ int main(void)
 	   USB_VCP_Puts(str);
 	}
      }
-     Delay(1000);
+     Delay(150);
   }
  
   return(0); // System will implode
